@@ -11,21 +11,19 @@ So current_angle = Current rotation of the rocket(Generally should be 0 degree)
     PID is using current_angle to give the corrective servo angle signal. In the actual system, we won't be using this. We will be using Torque.
 */
 
-//#include <Adafruit_MPU6050.h>
+#include <Adafruit_MPU6050.h>
+#include <Adafruit_Sensor.h>
 
 #include <Servo.h>
 
-//Adafruit_MPU6050 mpu;
+Adafruit_MPU6050 mpu;
 
 Servo myservo; 
-
-/* Get new sensor events with the readings */
-//sensors_event_t a, g, t;
 
 int i = 0;
 
 float KP = 0.8;
-float KI = 0.01;
+float KI = 0.3;
 float KD = 0.2;
 
 int proportional_error = 0;
@@ -58,44 +56,113 @@ void setup() {
    myservo.write(90);
    delay(20);
   
-//  // Try to initialize!
-//  if (!mpu.begin()) {
-//    Serial.println("Failed to find MPU6050 chip");
-//    while (1) {
-//      delay(10);
-//    }
-//  }
-//  Serial.println("MPU6050 Found!");
-//
-//  // set accelerometer range to +-8G
-//  mpu.setAccelerometerRange(MPU6050_RANGE_8_G);
-//
-//  // set gyro range to +- 500 deg/s
-//  mpu.setGyroRange(MPU6050_RANGE_500_DEG);
-//
-//  // set filter bandwidth to 21 Hz
-//  mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);
+  // Try to initialize!
+  if (!mpu.begin()) {
+    Serial.println("Failed to find MPU6050 chip");
+    while (1) {
+      delay(10);
+    }
+  }
+  Serial.println("MPU6050 Found!");
+
+  mpu.setAccelerometerRange(MPU6050_RANGE_8_G);
+  Serial.print("Accelerometer range set to: ");
+  switch (mpu.getAccelerometerRange()) {
+  case MPU6050_RANGE_2_G:
+    Serial.println("+-2G");
+    break;
+  case MPU6050_RANGE_4_G:
+    Serial.println("+-4G");
+    break;
+  case MPU6050_RANGE_8_G:
+    Serial.println("+-8G");
+    break;
+  case MPU6050_RANGE_16_G:
+    Serial.println("+-16G");
+    break;
+  }
+  mpu.setGyroRange(MPU6050_RANGE_500_DEG);
+  Serial.print("Gyro range set to: ");
+  switch (mpu.getGyroRange()) {
+  case MPU6050_RANGE_250_DEG:
+    Serial.println("+- 250 deg/s");
+    break;
+  case MPU6050_RANGE_500_DEG:
+    Serial.println("+- 500 deg/s");
+    break;
+  case MPU6050_RANGE_1000_DEG:
+    Serial.println("+- 1000 deg/s");
+    break;
+  case MPU6050_RANGE_2000_DEG:
+    Serial.println("+- 2000 deg/s");
+    break;
+  }
+
+  mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);
+  Serial.print("Filter bandwidth set to: ");
+  switch (mpu.getFilterBandwidth()) {
+  case MPU6050_BAND_260_HZ:
+    Serial.println("260 Hz");
+    break;
+  case MPU6050_BAND_184_HZ:
+    Serial.println("184 Hz");
+    break;
+  case MPU6050_BAND_94_HZ:
+    Serial.println("94 Hz");
+    break;
+  case MPU6050_BAND_44_HZ:
+    Serial.println("44 Hz");
+    break;
+  case MPU6050_BAND_21_HZ:
+    Serial.println("21 Hz");
+    break;
+  case MPU6050_BAND_10_HZ:
+    Serial.println("10 Hz");
+    break;
+  case MPU6050_BAND_5_HZ:
+    Serial.println("5 Hz");
+    break;
+  }
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
 
   /* Print out the values */
-//  Serial.print("Acceleration X: ");
-//  Serial.print(a.acceleration.x);
-//  Serial.print(", Y: ");
-//  Serial.print(a.acceleration.y);
-//  Serial.print(", Z: ");
-//  Serial.print(a.acceleration.z);
-//  Serial.println(" m/s^2");
 
-//  Serial.print("Rotation X: ");
-//  Serial.print(g.gyro.x);
-//  Serial.print(", Y: ");
-//  Serial.print(g.gyro.y);
-//  Serial.print(", Z: ");
-//  Serial.print(g.gyro.z);
-//  Serial.println(" rad/s");
+  /* Get new sensor events with the readings */
+  sensors_event_t a, g, t;
+  mpu.getEvent(&a, &g, &t);
+  
+  float AccX = a.acceleration.x;
+  float AccY = a.acceleration.y;
+  float AccZ = a.acceleration.z;
+
+  // Calculating Roll and Pitch from the accelerometer data
+  float Roll = (atan(AccY / sqrt(pow(AccX, 2) + pow(AccZ, 2))) * 180 / PI) ;
+
+  float Pitch = (atan(-1 * AccX / sqrt(pow(AccY, 2) + pow(AccZ, 2))) * 180 / PI);
+  Serial.print("Roll : ");
+   Serial.print(Roll);
+   Serial.print(" , Pitch : ");
+   Serial.println(Pitch);
+
+   current_angle = Roll;
+  Serial.print("Acceleration X: ");
+  Serial.print(a.acceleration.x);
+  Serial.print(", Y: ");
+  Serial.print(a.acceleration.y);
+  Serial.print(", Z: ");
+  Serial.print(a.acceleration.z);
+  Serial.println(" m/s^2");
+
+  Serial.print("Rotation X: ");
+  Serial.print(g.gyro.x);
+  Serial.print(", Y: ");
+  Serial.print(g.gyro.y);
+  Serial.print(", Z: ");
+  Serial.print(g.gyro.z);
+  Serial.println(" rad/s");
 
 //  Serial.print("Temperature: ");
 //  Serial.print(temp.temperature);
@@ -126,8 +193,8 @@ void loop() {
     Serial.print(" , Control Signal is : ");
     Serial.println(control_signal);
 
-    current_angle += control_signal;
-    servo_val = 90 + control_signal;
+//    current_angle += control_signal;
+    servo_val = 90 - control_signal;
     if(servo_val < 0)
     {
       servo_val = 0;
@@ -137,31 +204,31 @@ void loop() {
       servo_val = 180;
     }
     myservo.write(servo_val); 
-    delay(100); 
+    delay(20); 
 
     prev_proportional_error = proportional_error;
     i += 1;
 
     old_time = millis();
     
-    if(i%10 == 0 && flag == 0)
-    {
-      current_angle += 70;
-      counter = 0;
-      flag = 1;
-    }
-
-    if(flag == 1)
-    {
-        current_angle -= 10;
-    }
-
-    if(current_angle <= 0)
-    {
-      flag = 0;
-    }
+//    if(i%10 == 0 && flag == 0)
+//    {
+//      current_angle += 70;
+//      counter = 0;
+//      flag = 1;
+//    }
+//
+//    if(flag == 1)
+//    {
+//        current_angle -= 10;
+//    }
+//
+//    if(current_angle <= 0)
+//    {
+//      flag = 0;
+//    }
   Serial.println(i);
-  delay(2000);
+  delay(50);
 }
 //#include <Wire.h>
 // 
